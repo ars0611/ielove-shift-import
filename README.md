@@ -24,6 +24,8 @@ wxtプロジェクト作成はこちら（[リンク](https://wxt.dev/guide/inst
 1. 各種パッケージをインストール   
   `pnpm init`   
   `pnpm -i -D wxt`   
+  `pnpm add -D tailwindcss @tailwindcss/vite`   
+  `pnpm add -D prettier`   
 1. 開発環境を立ち上げる   
   `pnpm run dev`   
 ブラウザが開いて、拡張機能をクリックした際に、entrypoints/popup/main.tsxが表示されれば成功!
