@@ -4,4 +4,24 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   // Relative to project root
   srcDir: "src",             // default: "."
+  runner: {
+    startUrls: ["https://google.com/"]
+  },
+  manifest: () => ({
+    name: "shift-importer",
+    version: "0.1.0",
+    permissions: ["identity", "storage"],
+    host_permissions: ["https://www.googleapis.com/*"],
+    oauth2: {
+      client_id: import.meta.env.WXT_OAUTH_CLIENT_ID,
+      scopes: [
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+        "https://www.googleapis.com/auth/calendar.events"
+      ]
+    },
+    "background": {
+      "service_worker": "backgroud.ts"
+    },
+    key: import.meta.env.WXT_EXTENSION_PUBLIC_KEY
   })
+})
