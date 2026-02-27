@@ -10,10 +10,10 @@ export async function requestAuthCheck(): Promise<AuthResponse> {
 }
 /**
  * background.tsに認証の開始を依頼する
- * @remarks `chrome.runtime.sendMessage` で `{ type: "AUTH_CONNECT" }` を送信し、OAuth2の認証を実行する
+ * @remarks `chrome.runtime.sendMessage` で `{ type: "AUTH_CONNECT" }` を送信し、backgroud.tsからの応答を `AuthResponse`として扱う
  * @returns 認証実行の結果を表すレスポンス
  */
 export async function requestAuthConnect(): Promise<AuthResponse> {
-    const res = await chrome.runtime.sendMessage({ type: "AUTH_CONNECT" })
+    const res = await chrome.runtime.sendMessage({ type: "AUTH_CONNECT" });
     return res as AuthResponse;
 }
