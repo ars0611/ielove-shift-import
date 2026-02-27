@@ -20,7 +20,7 @@ export default defineConfig({
       ]
     },
     "background": {
-      "service_worker": "backgroud.ts"
+      "service_worker": "background.ts"
     },
     key: import.meta.env.WXT_EXTENSION_PUBLIC_KEY
   })

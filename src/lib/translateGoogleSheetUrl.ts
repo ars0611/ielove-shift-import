@@ -1,10 +1,10 @@
 // Urlから得たsheetIdとgidの型
-export type translatedUrl = {
+type translatedUrl = {
     spreadsheetId: string;
     sheetId: number; // urlのgidの値
 }
 
-export function translateGoogleSheetUrl(sheetUrl: URL): translatedUrl {
+export default function translateGoogleSheetUrl(sheetUrl: URL): translatedUrl {
     // [spreadsheets, d, {spreadSheetId}, ...]: string[]
     const parts: string[] = sheetUrl.pathname.split('/');
     const dIndex: number = parts.indexOf('d');
