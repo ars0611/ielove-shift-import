@@ -17,3 +17,24 @@ export async function getCurrentTabUrl(): Promise<string> {
 
     return tab.url as string;
 }
+
+/**
+ * 現在（ポップアップ閲覧時）のタブのIDを取得する
+ * @returns 現在のタブのID
+ * @throws タブ取得、もしくはタブのID取得に失敗したときエラー
+ */
+export async function getCurrentTabID(): Promise<number> {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tab = tabs[0];
+
+    if (!tab) {
+        throw new Error("現在のタブを取得できませんでした");
+    }
+
+    if (!tab.id) {
+        throw new Error("現在のタブのIDを取得できませんでした");
+    }
+
+    return tab.id as number;
+}
+
