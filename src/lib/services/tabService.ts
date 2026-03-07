@@ -25,7 +25,7 @@ export async function getCurrentTabUrl(): Promise<string> {
  * @throws タブ取得、もしくはタブのID取得に失敗したときエラー
  * @see https://developer.chrome.com/docs/extensions/reference/api/tabs?hl=ja
  */
-export async function getCurrentTabID(): Promise<number> {
+export async function getCurrentTabId(): Promise<number> {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const tab = tabs[0];
 
@@ -33,7 +33,7 @@ export async function getCurrentTabID(): Promise<number> {
         throw new Error("現在のタブを取得できませんでした");
     }
 
-    if (!tab.id) {
+    if (tab.id == null) {
         throw new Error("現在のタブのIDを取得できませんでした");
     }
 

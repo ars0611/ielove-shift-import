@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 type ModalWrapperProps = {
     children: ReactNode
 }
+
 /**
  * モーダル風にpropsのUIを表示する
  * @remark 画面左に寄って表示される（popupと重なるのを防ぐため）
@@ -26,8 +27,9 @@ type FormWrapperProps = {
 }
 
 /**
- * 
- * @returns 
+ * 注意書きとフォームを表示する
+ * @returns フォームのラッパーUI
+ * @see https://ja.react.dev/reference/react-dom/components/form
  */
 export function FormWrapper({ formId, actionFunc, children }: FormWrapperProps) {
     return (

@@ -8,5 +8,5 @@ import type { LoadSheetResponse } from "@/types/message";
  */
 export async function requestLoadSheet(ranges: Array<string>): Promise<LoadSheetResponse> {
     const res = await chrome.runtime.sendMessage({ type: "LOAD_SHEET", ranges });
-    return res as LoadSheetResponse;
+    return res;
 }

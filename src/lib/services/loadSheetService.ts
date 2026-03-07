@@ -1,6 +1,6 @@
 import { BatchGetResponse, SpreadsheetMetaResponse } from "@/types/sheet";
 
-type getValuesProps = {
+type fetchValuesProps = {
     accessToken: string,
     spreadsheetId: string,
     title: string,
@@ -18,7 +18,7 @@ type getValuesProps = {
  * @throws API呼び出し失敗時のエラー
  * @see https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets.values/batchGet?hl=ja
  */
-export async function fetchValues({ accessToken, spreadsheetId, title, ranges }: getValuesProps): Promise<BatchGetResponse> {
+export async function fetchValues({ accessToken, spreadsheetId, title, ranges }: fetchValuesProps): Promise<BatchGetResponse> {
     // リクエスト用のURLを組み立てる
     const encodedSpreadsheetId = encodeURIComponent(spreadsheetId);
     const url = new URL(`https://sheets.googleapis.com/v4/spreadsheets/${encodedSpreadsheetId}/values:batchGet`);
@@ -43,7 +43,7 @@ export async function fetchValues({ accessToken, spreadsheetId, title, ranges }:
     return data;
 }
 
-type getTitlesBySpreadsheetIdProps = {
+type fetchTitlesAndSpreadsheetIdProps = {
     accessToken: string,
     spreadsheetId: string
 }
@@ -56,7 +56,7 @@ type getTitlesBySpreadsheetIdProps = {
  * @throws リクエスト失敗時にエラー
  * @see https://developers.google.com/workspace/sheets/api/guides/field-masks?hl=ja
  */
-export async function fetchTitlesAndSpreadsheetId({ accessToken, spreadsheetId }: getTitlesBySpreadsheetIdProps): Promise<SpreadsheetMetaResponse> {
+export async function fetchTitlesAndSpreadsheetId({ accessToken, spreadsheetId }: fetchTitlesAndSpreadsheetIdProps): Promise<SpreadsheetMetaResponse> {
     // リクエスト用のURLを組み立てる
     const encodedSpreadsheetId = encodeURIComponent(spreadsheetId);
     const url: URL = new URL(`https://sheets.googleapis.com/v4/spreadsheets/${encodedSpreadsheetId}?fields=sheets.properties(sheetId,title)`)
