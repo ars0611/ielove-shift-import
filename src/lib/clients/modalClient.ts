@@ -1,21 +1,22 @@
+import { ModalResponse } from "@/types/message";
 import { ModalElement } from "@/types/modal";
 
 /**
- * content.ts にモーダルのUIの表示を依頼する
- * @param modalElement モーダルに表示したいコンポーネントの種類
- * @param payload modalElementを表示するために必要なデータ
- * @returns 
+ * background.tsにモーダルを開くよう依頼する
+ * @remarks `chrome.runtime.sendMessage` で `{ type: "OPEN_MODAL" }` を送信し、backgroud.tsからの応答を `ModalResponse`として扱う
+ * @returns モーダル制御の結果を表すレスポンス
  */
-export async function requestOpenModal(modalElement: ModalElement) {
-    await chrome.runtime.sendMessage({ type: "OPEN_MODAL", modalElement: modalElement });
-    return;
+export async function requestOpenModal(modalElement: ModalElement): Promise<ModalResponse> {
+    const res = await chrome.runtime.sendMessage({ type: "OPEN_MODAL", modalElement: modalElement });
+    return res;
 }
 
 /**
- * content.ts にモーダルのUIの非表示を依頼する
- * @returns 
+ * background.tsにモーダルを閉じるよう依頼する
+ * @remarks `chrome.runtime.sendMessage` で `{ type: "CLOSE_MODAL" }` を送信し、backgroud.tsからの応答を `ModalResponse`として扱う
+ * @returns モーダル制御の結果を表すレスポンス
  */
-export async function requestCloseModal() {
-    await chrome.runtime.sendMessage({ type: "CLOSE_MODAL" });
-    return;
+export async function requestCloseModal(): Promise<ModalResponse> {
+    const res = await chrome.runtime.sendMessage({ type: "CLOSE_MODAL" });
+    return res;
 }

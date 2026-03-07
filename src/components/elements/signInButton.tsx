@@ -4,9 +4,9 @@ type SignInButtonProp = {
 }
 /**
  * Googleサインイン開始ボタンを表示するコンポーネント
- * @remarks See https://developers.google.com/identity/branding-guidelines?hl=ja
  * @params onClickFunc ボタンクリック時に実行する関数
  * @returns GoogleサインインボタンのUI
+ * @See https://developers.google.com/identity/branding-guidelines?hl=ja
  */
 export function SignInButton({ onClickFunc }: SignInButtonProp) {
 

@@ -1,8 +1,18 @@
 import { ExtensionMessage } from "@/types/message";
+import { BatchGetResponse } from "@/types/sheet";
 import { createRoot, Root } from "react-dom/client";
 import tailwindCss from "@/entrypoints/popup/style.css?inline"; // tailwindcss有効化
 import { ModalSection } from "@/components/sections/modalSection";
 import { ModalElement } from "@/types/modal";
+
+const initialBatchGetResponse: BatchGetResponse = {
+    spreadSheetId: "",
+    valueRanges: [
+        { range: "", majorDimension: "COLUMNS", values: [[]] },
+        { range: "", majorDimension: "COLUMNS", values: [[]] },
+        { range: "", majorDimension: "COLUMNS", values: [[]] },
+    ],
+}
 
 /** タブ上にモーダル用UIをマウントするcontent script */
 export default defineContentScript({
@@ -16,7 +26,7 @@ export default defineContentScript({
         let mounted = false;
         let currentModalElement: ModalElement = {
             type: "SHIFT_CELL",
-            payload: [[]]
+            payload: initialBatchGetResponse
         }
         let rootRef: Root | null = null;
 
@@ -60,12 +70,15 @@ export default defineContentScript({
                 elements?.wrapper.remove();
             },
         });
-        chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
+        chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
             if (message.type === "OPEN_MODAL") {
                 openModal(message.modalElement);
+                sendResponse({ ok: true });
                 return;
             } else if (message.type === "CLOSE_MODAL") {
                 closeModal();
+                sendResponse({ ok: true });
+                return
             }
         })
     },

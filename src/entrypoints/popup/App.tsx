@@ -6,7 +6,7 @@ import './App.css';
 
 export default function App() {
   return (
-    <div className="p-4">
+    <div className="p-2">
       <AccountLinkSection />
       <LoadSheetSection />
     </div>

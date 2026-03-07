@@ -1,8 +1,9 @@
+import { useState } from "react";
+import { useFormStatus } from "react-dom";
 import { TriggerButton } from "../elements/Button";
-import { requestLoadSheet } from "@/lib/clients/loadSheetClient";
 import { FormWrapper } from "../elements/wrapper";
-import { ReactNode, useState } from "react";
 import { RangePairInput } from "../elements/rangePairInput";
+import { requestLoadSheet } from "@/lib/clients/loadSheetClient";
 import { validateSheetRangeForm } from "@/lib/utils/validation";
 import { requestOpenModal } from "@/lib/clients/modalClient";
 
@@ -30,6 +31,17 @@ export function LoadSheetSection() {
     const [error, setError] = useState<string>('');
 
     /**
+     * このsectionでのみ使うボタン。送信状態に応じてlabelやdisable属性が変わる。
+     * @returns ボタンUI
+     * @see https://ja.react.dev/reference/react-dom/hooks/useFormStatus
+     */
+    function LoadSheetSubmitButton() {
+        const { pending } = useFormStatus();
+        return (
+            <TriggerButton label={pending ? "読み込み中" : "シートを読み込む"} type="submit" disabled={pending} />
+        )
+    }
+    /**
      * form送信時に実行される処理
      * @param formData 
      * @returns 
@@ -46,7 +58,7 @@ export function LoadSheetSection() {
             return typeof value === "string" ? value : null;
         }
 
-        // formの入力値を得て
+        // formの入力値を得る
         const dateStart = toNullableString(formData.get("dateStart"));
         const dateEnd = toNullableString(formData.get("dateEnd"));
         const clockInStart = toNullableString(formData.get("clockInStart"));
@@ -54,20 +66,27 @@ export function LoadSheetSection() {
         const clockOutStart = toNullableString(formData.get("clockOutStart"));
         const clockOutEnd = toNullableString(formData.get("clockOutEnd"));
 
+        // formの入力値のバリデーション
         const validationRes = validateSheetRangeForm({ dateStart, dateEnd, clockInStart, clockInEnd, clockOutStart, clockOutEnd });
         if (!validationRes.ok) {
             setError(validationRes.error ?? "入力値が不正です。");
             return;
         }
 
+        // backgroud.tsにシートの読み込みを依頼
         const ranges = [`${dateStart}:${dateEnd}`, `${clockInStart}:${clockInEnd}`, `${clockOutStart}:${clockOutEnd}`];
-        const res = await requestLoadSheet(ranges);
-        if (!res.ok || !res.connected) {
-            setError(res.error ?? "シートの読み込みに失敗しました。");
+        const loadSheetRes = await requestLoadSheet(ranges);
+        if (!loadSheetRes.ok || !loadSheetRes.connected) {
+            setError(loadSheetRes.error ?? "シートの読み込みに失敗しました。");
             return;
         }
 
-        await requestOpenModal({ type: "SHIFT_CELL", payload: res.sheetData });
+        // 読み込んだシートの内容をもとにモーダルを開く
+        const openModalRes = await requestOpenModal({ type: "SHIFT_CELL", payload: loadSheetRes.sheetData });
+        if (!openModalRes?.ok) {
+            setError(openModalRes.error ?? "モーダルの表示に失敗しました。")
+            return;
+        }
 
     }
     return (
@@ -75,7 +94,9 @@ export function LoadSheetSection() {
             <p>{error}</p>
             <FormWrapper formId={formId} actionFunc={actionFunc}>
                 <SheetRangeForm />
-                <TriggerButton label="閲覧中のシートを読み込む" type="submit" />
+                <div className="mt-2 flex justify-center">
+                    <LoadSheetSubmitButton />
+                </div>
             </FormWrapper>
         </>
     )

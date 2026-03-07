@@ -6,7 +6,7 @@ import type { AuthResponse } from "@/types/message";
  */
 export async function requestAuthCheck(): Promise<AuthResponse> {
     const res = await chrome.runtime.sendMessage({ type: "AUTH_CHECK" });
-    return res as AuthResponse;
+    return res;
 }
 /**
  * background.tsに認証の開始を依頼する
@@ -15,5 +15,5 @@ export async function requestAuthCheck(): Promise<AuthResponse> {
  */
 export async function requestAuthConnect(): Promise<AuthResponse> {
     const res = await chrome.runtime.sendMessage({ type: "AUTH_CONNECT" });
-    return res as AuthResponse;
+    return res;
 }
