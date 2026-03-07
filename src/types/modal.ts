@@ -1,6 +1,6 @@
-import { SheetData } from "./sheet"
+import { BatchGetResponse } from "./sheet"
 
 export type ModalElement = {
     type: "SHIFT_CELL",
-    payload: SheetData,
+    payload: BatchGetResponse
 }

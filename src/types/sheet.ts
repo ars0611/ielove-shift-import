@@ -17,3 +17,6 @@ export type SpreadsheetMetaResponse = {
 };
 
 export type SheetData = Array<Array<string | number>>;
+
+export type BatchGetRanges = string[]
+

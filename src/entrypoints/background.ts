@@ -2,7 +2,8 @@ import { checkGoogleAuth, connectGoogleAuth, getAccessToken } from "@/lib/servic
 import { fetchTitlesAndSpreadsheetId, fetchValues } from "@/lib/services/loadSheetService";
 import { getCurrentTabId, getCurrentTabUrl } from "@/lib/services/tabService";
 import { getGid, getSpreadsheetId } from "@/lib/utils/translateSheetUrlUtil";
-import { getTitleByGid, parseBatchGetResponse } from "@/lib/utils/sheetMetaUtil";
+import { getTitleByGid } from "@/lib/utils/sheetMetaUtil";
+import { validateBatchGetResponse, validateRangesForBatchGet } from "@/lib/utils/validation";
 import type { ExtensionMessage } from "@/types/message";
 
 /**
@@ -35,30 +36,54 @@ export default defineBackground(() => {
 
                 } else if (message.type === "LOAD_SHEET") {
                     // スプレッドシートを読み込む処理
-                    const ranges = message.ranges ?? [[]];
+                    // batchgetで扱うrangesのバリデーション
+                    const ranges = message.ranges;
+                    const validateRangesForBatchGetRes = validateRangesForBatchGet(ranges);
+                    if (!validateRangesForBatchGetRes.ok) {
+                        sendResponse({ ok: false, connected: true, error: validateRangesForBatchGetRes.error });
+                        return;
+                    }
+
                     // sheetsAPIを叩くのに必要なOAuth2認証トークンを取得
                     const accessToken = await getAccessToken();
+                    // sheetsAPIを叩くのに必要なパラメータを取得
                     const currentTabUrl = await getCurrentTabUrl();
                     const spreadsheetId = getSpreadsheetId(currentTabUrl);
                     const gid = getGid(currentTabUrl);
                     const sheetJson = await fetchTitlesAndSpreadsheetId({ accessToken, spreadsheetId });
                     const title: string = getTitleByGid({ sheetJson, gid });
+
+                    // batchgetで得たレスポンスに対してバリデーション
                     const sheetDataByBatchget = await fetchValues({ accessToken, spreadsheetId, title, ranges });
-                    const sheetData = parseBatchGetResponse(sheetDataByBatchget);
-                    const connected = !!sheetData;
-                    sendResponse({ ok: true, connected, error: connected ? undefined : "シートの読み込みに失敗しました", sheetData });
+                    const validateBatchGetResponseRes = validateBatchGetResponse(sheetDataByBatchget);
+                    if (!validateBatchGetResponseRes.ok) {
+                        sendResponse({ ok: false, connected: true, error: validateBatchGetResponseRes.error });
+                        return;
+                    }
+
+                    // popupにbatchgetのレスポンスを返す
+                    sendResponse({ ok: true, connected: true, sheetData: sheetDataByBatchget });
                     return;
 
                 } else if (message.type === "OPEN_MODAL") {
                     // モーダルを開く処理
                     const tabId = await getCurrentTabId();
-                    await chrome.tabs.sendMessage(tabId, message);
+                    const tabRes = await chrome.tabs.sendMessage(tabId, message);
+                    sendResponse({ ok: tabRes.ok });
                     return;
 
                 } else if (message.type === "CLOSE_MODAL") {
                     // モーダルを閉じる処理
                     const tabId = await getCurrentTabId();
-                    await chrome.tabs.sendMessage(tabId, message);
+                    const tabRes = await chrome.tabs.sendMessage(tabId, message);
+                    sendResponse({ ok: tabRes.ok });
+                    return;
+
+                } else if (message.type === "IMPORT_TO_CALENDAR") {
+                    // カレンダーに予定を取り込む処理
+                    // calendarAPIを叩くのに必要なOAuth2認証トークンを取得
+                    const accessToken = await getAccessToken();
+                    sendResponse({ ok: true, connected: true });
                     return;
                 }
 

@@ -1,4 +1,5 @@
 import { StringTuple } from "@/types/common"
+import { BatchGetRanges, BatchGetResponse } from "@/types/sheet"
 
 type validateSheetRangeFormProps = {
     dateStart: string | null,
@@ -95,7 +96,7 @@ export function validateSheetRangeForm({
     clockInStart,
     clockInEnd,
     clockOutStart,
-    clockOutEnd }: validateSheetRangeFormProps) {
+    clockOutEnd }: validateSheetRangeFormProps): validationResult {
     // 未入力チェック
     if (!dateStart || !dateEnd || !clockInStart || !clockInEnd || !clockOutStart || !clockOutEnd) {
         return { ok: false, error: "入力値が不足しています。" };
@@ -142,3 +143,129 @@ export function validateSheetRangeForm({
     return { ok: true };
 }
 
+/**
+ * backgroud.ts側で行うセル範囲指定のバリデーション
+ * @param ranges backgroudで受け取ったセル範囲指定 (例: `["A8:A38", "Z8:Z38", "AA8:AA38"]`)
+ * @returns `validationResult` バリデーション結果
+ */
+export function validateRangesForBatchGet(ranges: BatchGetRanges): validationResult {
+    if (ranges.length !== 3) {
+        return { ok: false, error: "入力値が不足しています。" };
+    }
+    const [dateStart, dateEnd] = ranges[0].split(':');
+    const [clockInStart, clockInEnd] = ranges[1].split(':');
+    const [clockOutStart, clockOutEnd] = ranges[2].split(':');
+    return validateSheetRangeForm({ dateStart, dateEnd, clockInStart, clockInEnd, clockOutStart, clockOutEnd });
+}
+
+/**
+ * batchgetのレスポンスのrangeから月を取得する
+ * @param range : string （例: `"'2026年3月'!A8:A35月"`）
+ * @returns month : number | null
+ */
+function extractMonthFromRange(range: string): number | null {
+    const bangIdx = range.indexOf("!");
+    const title = bangIdx >= 0 ? range.slice(0, bangIdx) : range;
+    const monthPos = title.indexOf("月");
+    // mm月が見つからなかった場合
+    if (monthPos < 0) { return null; }
+
+    // 2桁の場合も考慮して'月'のindexからmmを探す
+    let i = monthPos - 1;
+    while (i >= 0 && title[i] >= '0' && title[i] <= '9') { i--; }
+    const month = Number(title.slice(i + 1, monthPos));
+
+    return (!Number.isNaN(month) && month >= 1 && month <= 12) ? month : null;
+}
+
+/**
+ * batchgetで得たvalueの要素（セルの値）から月を取得する
+ * @remarks 引数はmm月dd日の形式であることが保証されていることを前提としている
+ * @param cell :string (例: `"3月1日"`)
+ * @return month :number | null 月
+ */
+function extractMonthFromCell(cell: string): number | null {
+    const monthPos = cell.indexOf('月');
+    if (monthPos <= 0) { return null; }
+    const month = Number(cell.slice(0, monthPos));
+    return (!Number.isNaN(month) && month >= 1 && month <= 12) ? month : null;
+}
+
+/**
+ * セルに入力されたmm月dd日から mm, ddを得る
+ * @param cell セルに入力されたmm月dd日
+ * @returns `[month, day] | null`
+ */
+function parseMonthDay(cell: string): { month: number, day: number } | null {
+    const monthPos = cell.indexOf("月");
+    const dayPos = cell.indexOf("日");
+    if (monthPos <= 0 || dayPos <= monthPos + 1 || dayPos !== cell.length - 1) return null;
+
+    const month = Number(cell.slice(0, monthPos));
+    const day = Number(cell.slice(monthPos + 1, dayPos));
+    if (Number.isNaN(month) || Number.isNaN(day)) return null;
+
+    if (month < 1 || month > 12) return null;
+    if (day < 1 || day > 31) return null;
+
+    return { month, day };
+}
+
+/**
+ * batchgetで得たレスポンスに対するバリデーション
+ * @param response :BatchGetResponse batchgetのレスポンス
+ * @returns `validationResult` バリデーション結果
+ */
+export function validateBatchGetResponse(response: BatchGetResponse): validationResult {
+    // 日付、出勤、退勤の3つのセル値が必要
+    if (response.valueRanges.length !== 3) {
+        return { ok: false, error: "列数について、レスポンスが不正です。" };
+    }
+
+    // rangeで指定したシートから月を得る
+    const expectedMonth = extractMonthFromRange(response.valueRanges[0].range);
+    if (!expectedMonth) {
+        return { ok: false, error: "シートの月について、レスポンスが不正です。" };
+    }
+
+    // レスポンスから各列のセル値の配列を得る
+    const dateCol: Array<string | number> = (response.valueRanges[0].values?.[0] ?? []);
+    const clockInCol: Array<string | number> = (response.valueRanges[1].values?.[0] ?? []);
+    const clockOutCol: Array<string | number> = (response.valueRanges[2].values?.[0] ?? []);
+
+    // 日付列がすべて mm月dd日であることを確認
+    for (const v of dateCol) {
+        if (typeof v !== "string") {
+            return { ok: false, error: "日付列に不正な値があります。" };
+        }
+        const mmdd = parseMonthDay(v);
+        if (!mmdd) {
+            return { ok: false, error: `日付の形式が不正です: ${v}` };
+        }
+
+        // セルの月がタイトルの月と一致することを確認
+        if (mmdd.month !== expectedMonth) {
+            return { ok: false, error: `対象月以外の日付があります: ${v}` };
+        }
+    }
+
+    // 出勤列がすべて空文字か数字で、数字の場合有効な時刻であることを確認
+    for (const v of clockInCol) {
+        if (v === null || v === '') { continue; }
+        const vNum = Number(v);
+        if (Number.isNaN(vNum) || vNum < 0 || 24 <= vNum) {
+            return { ok: false, error: `出勤時刻が不正です: ${v}` };
+        }
+    }
+
+    // 退勤列がすべて空文字か数字で、数字の場合有効な時刻であることを確認
+    for (const v of clockOutCol) {
+        if (v === null || v === '') { continue; }
+        const vNum = Number(v);
+        if (Number.isNaN(vNum) || vNum < 0 || 24 <= vNum) {
+            return { ok: false, error: `出勤時刻が不正です: ${v}` };
+        }
+    }
+
+    return { ok: true };
+}

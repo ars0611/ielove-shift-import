@@ -3,13 +3,16 @@ import { SheetData } from "@/types/sheet";
 import { CancelButton, TriggerButton } from "../elements/Button";
 import { requestCloseModal } from "@/lib/clients/modalClient";
 import { ModalWrapper } from "../elements/wrapper";
+import { parseBatchGetResponse, toTimeLabel } from "@/lib/utils/sheetMetaUtil";
 
 type ShiftCellProps = {
     sheetData: SheetData
 }
 
 /**
- * 
+ * スプレッドシートから読み取った値をもとに、表形式で出勤日を表示する
+ * @param sheetData :ShiftCellProps 整形済みのsheetData
+ * @returns 出勤日の表
  */
 function ShiftCell({ sheetData }: ShiftCellProps) {
     return (
@@ -44,7 +47,7 @@ function ShiftCell({ sheetData }: ShiftCellProps) {
 
             <div className="flex items-center justify-between gap-3 border-t px-5 py-4">
                 <CancelButton onClickFunc={requestCloseModal} />
-                <TriggerButton label="この内容で取り込む" onClickFunc={() => { }} />
+                <TriggerButton label="この内容で取り込む" type="submit" onClickFunc={() => { }} />
             </div>
         </>
     )
@@ -53,15 +56,27 @@ function ShiftCell({ sheetData }: ShiftCellProps) {
 type ModalSectionProps = {
     modalElement: ModalElement
 }
+
 /**
- * 
+ * 引数のtypeに応じてモーダル風な画面を表示する
+ * @param modalElement :ModalSectionProps
+ * @returns モーダル風UI
  */
 export function ModalSection({ modalElement }: ModalSectionProps) {
+    if (modalElement.type !== "SHIFT_CELL") {
+        return null;
+    }
+    const rawSheetData = parseBatchGetResponse(modalElement.payload);
+    const sheetData: SheetData = [
+        rawSheetData[0] ?? [],
+        (rawSheetData[1] ?? []).map((cell) => toTimeLabel(cell)),
+        (rawSheetData[2] ?? []).map((cell) => toTimeLabel(cell)),
+    ];
     return (
         <>
             {modalElement.type === "SHIFT_CELL" &&
                 <ModalWrapper>
-                    <ShiftCell sheetData={modalElement.payload} />
+                    <ShiftCell sheetData={sheetData} />
                 </ModalWrapper>
             }
         </>
