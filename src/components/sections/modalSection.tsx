@@ -4,9 +4,14 @@ import { CancelButton, TriggerButton } from "../elements/Button";
 import { requestCloseModal } from "@/lib/clients/modalClient";
 import { ModalWrapper } from "../elements/wrapper";
 import { parseBatchGetResponse, toTimeLabel } from "@/lib/utils/sheetMetaUtil";
+import { requestImportToCalendar } from "@/lib/clients/importToCalendarClient";
+import { useState } from "react";
 
 type ShiftCellProps = {
-    sheetData: SheetData
+    sheetData: SheetData,
+    onImport: () => Promise<void>
+    isLoading?: boolean,
+    error?: string
 }
 
 /**
@@ -14,7 +19,7 @@ type ShiftCellProps = {
  * @param sheetData :ShiftCellProps 整形済みのsheetData
  * @returns 出勤日の表
  */
-function ShiftCell({ sheetData }: ShiftCellProps) {
+function ShiftCell({ sheetData, onImport, isLoading, error }: ShiftCellProps) {
     return (
         <>
             <div className="border-b px-4 py-3">
@@ -44,10 +49,10 @@ function ShiftCell({ sheetData }: ShiftCellProps) {
                     </table>
                 </div>
             </div>
-
+            {error && <p className="px-4 pb-2 text-sm text-red-700">{error}</p>}
             <div className="flex items-center justify-between gap-3 border-t px-5 py-4">
                 <CancelButton onClickFunc={requestCloseModal} />
-                <TriggerButton label="この内容で取り込む" type="submit" onClickFunc={() => { }} />
+                <TriggerButton label={isLoading ? "取り込み中..." : "この内容で取り込む"} type="submit" onClickFunc={onImport} disabled={isLoading} />
             </div>
         </>
     )
@@ -63,9 +68,34 @@ type ModalSectionProps = {
  * @returns モーダル風UI
  */
 export function ModalSection({ modalElement }: ModalSectionProps) {
+    const [error, setError] = useState<string>('');
+    const [result, setResult] = useState<string>('');
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+
     if (modalElement.type !== "SHIFT_CELL") {
         return null;
     }
+
+    /**
+     * 取り込むボタンクリック時に実行される処理
+     * @returns
+     */
+    async function onImport() {
+        if (isLoading) { return; }
+        setError("読み込み中はタブを切り替えないでください。");
+        setIsLoading(true);
+        const res = await requestImportToCalendar(modalElement.payload);
+
+        if (!res.ok || !res.connected) {
+            setError(res.error ?? "カレンダーへの取り込みに失敗しました。");
+            setIsLoading(false);
+            return;
+        }
+
+        setError(`既存のシフトを${res.deletedCount}件削除しました。\n 新たにシフトを${res.createdCount}件作成しました。`);
+        setIsLoading(false);
+    }
+
     const rawSheetData = parseBatchGetResponse(modalElement.payload);
     const sheetData: SheetData = [
         rawSheetData[0] ?? [],
@@ -76,7 +106,7 @@ export function ModalSection({ modalElement }: ModalSectionProps) {
         <>
             {modalElement.type === "SHIFT_CELL" &&
                 <ModalWrapper>
-                    <ShiftCell sheetData={sheetData} />
+                    <ShiftCell sheetData={sheetData} onImport={onImport} isLoading={isLoading} error={error} />
                 </ModalWrapper>
             }
         </>

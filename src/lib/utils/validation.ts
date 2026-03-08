@@ -1,5 +1,5 @@
-import { StringTuple } from "@/types/common"
 import { BatchGetRanges, BatchGetResponse } from "@/types/sheet"
+import { extractMonthFromRange, parseMonthDay } from "./sheetMetaUtil"
 
 type validateSheetRangeFormProps = {
     dateStart: string | null,
@@ -156,59 +156,6 @@ export function validateRangesForBatchGet(ranges: BatchGetRanges): validationRes
     const [clockInStart, clockInEnd] = ranges[1].split(':');
     const [clockOutStart, clockOutEnd] = ranges[2].split(':');
     return validateSheetRangeForm({ dateStart, dateEnd, clockInStart, clockInEnd, clockOutStart, clockOutEnd });
-}
-
-/**
- * batchgetのレスポンスのrangeから月を取得する
- * @param range : string （例: `"'2026年3月'!A8:A35月"`）
- * @returns month : number | null
- */
-function extractMonthFromRange(range: string): number | null {
-    const bangIdx = range.indexOf("!");
-    const title = bangIdx >= 0 ? range.slice(0, bangIdx) : range;
-    const monthPos = title.indexOf("月");
-    // mm月が見つからなかった場合
-    if (monthPos < 0) { return null; }
-
-    // 2桁の場合も考慮して'月'のindexからmmを探す
-    let i = monthPos - 1;
-    while (i >= 0 && title[i] >= '0' && title[i] <= '9') { i--; }
-    const month = Number(title.slice(i + 1, monthPos));
-
-    return (!Number.isNaN(month) && month >= 1 && month <= 12) ? month : null;
-}
-
-/**
- * batchgetで得たvalueの要素（セルの値）から月を取得する
- * @remarks 引数はmm月dd日の形式であることが保証されていることを前提としている
- * @param cell :string (例: `"3月1日"`)
- * @return month :number | null 月
- */
-function extractMonthFromCell(cell: string): number | null {
-    const monthPos = cell.indexOf('月');
-    if (monthPos <= 0) { return null; }
-    const month = Number(cell.slice(0, monthPos));
-    return (!Number.isNaN(month) && month >= 1 && month <= 12) ? month : null;
-}
-
-/**
- * セルに入力されたmm月dd日から mm, ddを得る
- * @param cell セルに入力されたmm月dd日
- * @returns `[month, day] | null`
- */
-function parseMonthDay(cell: string): { month: number, day: number } | null {
-    const monthPos = cell.indexOf("月");
-    const dayPos = cell.indexOf("日");
-    if (monthPos <= 0 || dayPos <= monthPos + 1 || dayPos !== cell.length - 1) return null;
-
-    const month = Number(cell.slice(0, monthPos));
-    const day = Number(cell.slice(monthPos + 1, dayPos));
-    if (Number.isNaN(month) || Number.isNaN(day)) return null;
-
-    if (month < 1 || month > 12) return null;
-    if (day < 1 || day > 31) return null;
-
-    return { month, day };
 }
 
 /**

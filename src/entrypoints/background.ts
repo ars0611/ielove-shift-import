@@ -2,9 +2,11 @@ import { checkGoogleAuth, connectGoogleAuth, getAccessToken } from "@/lib/servic
 import { fetchTitlesAndSpreadsheetId, fetchValues } from "@/lib/services/loadSheetService";
 import { getCurrentTabId, getCurrentTabUrl } from "@/lib/services/tabService";
 import { getGid, getSpreadsheetId } from "@/lib/utils/translateSheetUrlUtil";
-import { getTitleByGid } from "@/lib/utils/sheetMetaUtil";
+import { getTimeMinMaxFromBatchGetResponse, getEventTimesFromBatchGetResponse, getTitleByGid } from "@/lib/utils/sheetMetaUtil";
 import { validateBatchGetResponse, validateRangesForBatchGet } from "@/lib/utils/validation";
 import type { ExtensionMessage } from "@/types/message";
+import { createEvents, deleteEvents, fetchEventsInRange } from "@/lib/services/importToCalendarService";
+import { getShiftImportEventIds } from "@/lib/utils/calendarUtil";
 
 /**
  * @remarks runtimeメッセージを受け取り、認証チェックや認証を実行する
@@ -83,6 +85,31 @@ export default defineBackground(() => {
                     // カレンダーに予定を取り込む処理
                     // calendarAPIを叩くのに必要なOAuth2認証トークンを取得
                     const accessToken = await getAccessToken();
+
+                    // BatchGetResponseのままメッセージでsheetDataを渡される。
+                    const batchGetResponse = message.sheetData;
+                    // 一応不正な形式で渡されてないかチェック
+                    const validateBatchGetResponseRes = validateBatchGetResponse(batchGetResponse);
+                    if (!validateBatchGetResponseRes.ok) {
+                        sendResponse({ ok: false, connected: true, error: validateBatchGetResponseRes.error });
+                        return;
+                    }
+
+                    // batchgetResponseの日付列初日と最終日を得る
+                    const { timeMin, timeMax } = getTimeMinMaxFromBatchGetResponse(batchGetResponse);
+                    const eventTimes = getEventTimesFromBatchGetResponse(batchGetResponse);
+                    // 登録したい期間と被る予定を得る
+                    const events = await fetchEventsInRange({ accessToken, timeMin, timeMax });
+                    // 得た予定のうち、shift-importで作られた予定のIDのみ得る
+                    const eventIds = getShiftImportEventIds(events);
+
+                    // 2度目以降の取り込みでは予定が重複して作られてしまうので、過去作成した予定をいったんすべて消す
+                    // Todo: ゆくゆくは差分だけ消せるようにしたい
+                    const deletedCount = await deleteEvents({ accessToken, eventIds });
+                    const createdCount = await createEvents({ accessToken, eventTimes });
+                    sendResponse({ ok: true, connected: true, deletedCount, createdCount });
+
+
                     sendResponse({ ok: true, connected: true });
                     return;
                 }
