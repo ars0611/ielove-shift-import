@@ -17,7 +17,7 @@ export default defineConfig({
     permissions: ["identity", "storage", "activeTab"],
     host_permissions: ["https://www.googleapis.com/*", "https://sheets.googleapis.com/*", "https://docs.google.com/*"],
     oauth2: {
-      client_id: import.meta.env.WXT_OAUTH_CLIENT_ID,
+      client_id: import.meta.env.WXT_OAUTH_CLIENT_ID + ".apps.googleusercontent.com",
       scopes: [
         "https://www.googleapis.com/auth/spreadsheets.readonly",
         "https://www.googleapis.com/auth/calendar.events"
@@ -26,6 +26,6 @@ export default defineConfig({
     "background": {
       "service_worker": "background.ts"
     },
-    key: import.meta.env.WXT_EXTENSION_PUBLIC_KEY
+    // key: import.meta.env.WXT_EXTENSION_PUBLIC_KEY
   })
 })
