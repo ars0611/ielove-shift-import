@@ -1,6 +1,5 @@
 ﻿# Shift Importer
 ~~使いたい人は[こちら](https://github.com/ars0611/shift-import/releases/tag/ZIP)を参照。ストアの審査が通るまで、OAuth認証使うためにテストユーザーにGoogleアカウントのメールアドレスを追加する必要があるので、連絡ください。~~（拡張機能IDが一意にならずOAuth認証ができないため、ストアに公開されるまで使えません）
-> 
 
 Google スプレッドシートのシフト表を Google カレンダーへ取り込む Chrome 拡張です。  
 シフトの一括反映と、月収見込みの確認をこの拡張機能上で行えます。
