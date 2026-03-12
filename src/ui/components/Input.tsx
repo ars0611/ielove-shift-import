@@ -80,7 +80,7 @@ type EditableNumberState = {
  * @see https://ja.react.dev/reference/react/useActionState
  */
 export function EditableNumberRow({ unit, settingKey, initialValue, requestFunc, onSaved }: EditableNumberRowProps) {
-    const initialState: EditableNumberState = { isEditing: false, value: initialValue}
+    const initialState: EditableNumberState = { isEditing: false, value: initialValue }
 
     /**
      * フォーム送信時の状態遷移を定義する。
@@ -102,7 +102,7 @@ export function EditableNumberRow({ unit, settingKey, initialValue, requestFunc,
         // 保存成功時はstorage側の値を表示に反映する。
         const nextValue = res.values[settingKey];
         onSaved?.(nextValue);
-        return { isEditing: false, value: nextValue}
+        return { isEditing: false, value: nextValue }
     }
 
     /** useActionState でフォーム送信状態と表示値を管理する。 */
@@ -117,13 +117,15 @@ export function EditableNumberRow({ unit, settingKey, initialValue, requestFunc,
     return (
         <form action={formAction} className="flex items-end border-b">
             <input
+                key={state.isEditing ? "editing" : "view"}
                 name="amount"
                 type="number"
                 min="0"
                 step="1"
                 defaultValue={state.value}
                 disabled={!state.isEditing}
-                className="h-6 w-24 rounded px-2 text-right"
+                autoFocus
+                className="h-6 w-24 px-2 text-right"
             />
             <span className="text-sm">{unit}</span>
             <button
